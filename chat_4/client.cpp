@@ -85,12 +85,12 @@ void StartClient(int32_t port )
             KSOCKET::KEvent &ev = evbuf[i];
     		if (ev.read)
     		{
-        		int n = read(ev.sock,buf,1024);
+        		int nw = read(ev.sock,buf,1024);
         		if (n > 0 )
         		{
         		    int nw = sprintf(buf,"time(%d)_idx(%d)",tx,idx++);
-            		write(ev.sock,buf,n);
-            		LOGDEBUG("fd(%d) read/write(%d):%s\n",ev.sock,n,buf);
+            		write(ev.sock,buf,nw);
+            		LOGDEBUG("fd(%d) read/write(%d):%s\n",ev.sock,nw,buf);
             		sleep(1);
         		}
         		else

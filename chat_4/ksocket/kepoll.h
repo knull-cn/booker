@@ -24,10 +24,10 @@ inline int Create()
 	return epoll_create1(EPOLL_CLOEXEC);
 }
 
-inline void Release(int efd)
-{
-	close(efd);
-}
+//inline void Release(int efd)
+//{
+//	close(efd);
+//}
 
 inline bool Add(int efd, int sock, void *ud)
 {

@@ -2,12 +2,19 @@
 #ifndef _K_LOG_H__    
 #define _K_LOG_H__
 
+#ifdef _KDEBUG_
+#include <cstdio>
+#include <cstring>
+#include <cerrno>
+extern int errno;
+#endif//_KDEBUG_
+
+
 namespace KBASE
 {
 
 //#define _QDEBUG_
-#ifdef _QDEBUG_
-#include <cstdio>
+#ifdef _KDEBUG_
 //#include <cstdlib>
 
 #define fplog stdout
@@ -15,14 +22,13 @@ namespace KBASE
 #define LOGABORT(fmt,...)  do{fprintf(fplog,"  ABORT |");fprintf(fplog,fmt,##__VA_ARGS__);fprintf(fplog,"\n");abort();}while(0)
 #define LOGSYSERR(fmt,...) do{fprintf(fplog," SYSERR |");fprintf(fplog,fmt,##__VA_ARGS__);fprintf(fplog,"\n");abort();}while(0)
 #define LOGICERR(fmt,...)  do{fprintf(fplog,fmt,##__VA_ARGS__);fprintf(fplog,"\n");}while(0)
-#include <cstring>
-#include <cerrno.h>
-extern int errno;
+//#define LOGICERRNO LOGICERR
 #define LOGICERRNO(fmt,...) \
 do{\
     fprintf(fplog,fmt,##__VA_ARGS__);\
     fprintf(fplog,"(%d):%s\n",errno,strerror(errno));\
 }while(false)
+
 //business error;
 #define LOGERROR(fmt,...) do{fprintf(fplog,fmt,##__VA_ARGS__);fprintf(fplog,"\n");}while(0)
 #define LOGWARN(fmt,...) do{ fprintf(fplog,fmt,##__VA_ARGS__);fprintf(fplog,"\n");}while(0)
@@ -34,8 +40,8 @@ do{\
 #define LLIBDEBUG(fmt,...) do{fprintf(fplog,fmt,##__VA_ARGS__);fprintf(fplog,"\n");}while(0)
 
 #else
-#error "not define _QDEBUG_"
-#endif//_QDEBUG_
+#error "not define _KDEBUG_"
+#endif//_KDEBUG_
 
 }
 

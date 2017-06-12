@@ -13,24 +13,24 @@ using namespace KBASE;
 
 //模仿golang中的tcp;
 
-int32_t Tcpv4Listen(KSOCKET::KIPv4Addr &addr)
+int32_t Tcpv4Listen(KIPv4Addr &addr)
 {
     int32_t fd = KSOCKET::SocketIPv4();
     if (fd < 0)
     {
-        LOGICERRNO("Tcpv4Listen ");
+        LOGICERRNO("SocketIPv4 ");
         return fd;
     }
     struct sockaddr_in addrin = addr.Sockaddr_in();
-    if (!KSOCKET::BindIPv4(fd,(sockaddr*)&addrin,sizeof(addrin)))
+    if (!KSOCKET::BindIPv4(fd,addrin))
     {
-        LOGICERRNO("Tcpv4Listen ");
+        LOGICERRNO("BindIPv4 ");
         KSOCKET::Release(fd);
         fd = -1;
     }
-    if (!KSOCKET::Tcpv4Listen(fd))
+    if (!KSOCKET::ListenIPv4(fd))
     {        
-        LOGICERRNO("Tcpv4Listen ");
+        LOGICERRNO("Tcpv4Listen(%s:%d) ",addr.Address(),addr.Port());
         KSOCKET::Release(fd);
         fd = -1;
     }
@@ -41,14 +41,14 @@ bool SocketSet(int32_t fd)
 {
     if (!KSOCKET::SetClosefdOnFork(fd))
     {
-        LOGICERRNO("Tcpv4Listen ");
+        LOGICERRNO("SetClosefdOnFork");
         KSOCKET::Release(fd);
         fd = -1;
         return false;
     }
     if (!KSOCKET::SetNoblock(fd))
     {
-        LOGICERRNO("Tcpv4Listen ");
+        LOGICERRNO("SetNoblock ");
         KSOCKET::Release(fd);
         fd = -1;
         return false;
@@ -62,8 +62,8 @@ void StartServer(int32_t port)
 {
     g_efd = KSOCKET::Create();
     //
-    KSOCKET::KIPv4Addr addr(port);
-    int32_t lfd = Tcpv4Listen(addr)
+    KIPv4Addr addr(port);
+    int32_t lfd = Tcpv4Listen(addr);
     if (lfd < 0)
     {
         return ;
@@ -72,18 +72,20 @@ void StartServer(int32_t port)
     {
         return ;
     }
+    LOGDEBUG("Server Listen on %d",port);
     //
-    KSOCKET::Add(lfd);
+    KSOCKET::Add(g_efd,lfd,NULL);
     //
     KSOCKET::KEvent evbuf[128];
+    char buf[1024];
     int32_t n = 0;
     while (true)
     {
-        n = KEPOLL::wait(g_efd,evbuf,esize);
+        n = KSOCKET::Wait(g_efd,evbuf,128);
         if (n < 0)
         {
         	LOGERROR("epoll_wait error(%d):%s\n",errno,strerror(errno));
-        	return 0;
+        	return ;
         }
         for (int i=0; i<n; i++)
         {
@@ -99,8 +101,10 @@ void StartServer(int32_t port)
                         LOGERROR("AccpetIPv4 ERROR");
                         continue;
                     }
+                    KIPv4Addr accepter(daddr);
+                    LOGDEBUG("accept fd(%d) from (%s:%d)",fd,accepter.Address(),accepter.Port());
                     SocketSet(fd);
-                    KSOCKET::Add(lfd);
+                    KSOCKET::Add(g_efd,fd,NULL);
                     continue;
                 }
                 if (ev.error)
@@ -117,7 +121,7 @@ void StartServer(int32_t port)
             		if (n > 0 )
             		{
                 		write(ev.sock,buf,n);
-                		LOGICERRNO("fd(%d) read/write(%d):%s\n",ev.sock,n,buf);
+                		LOGDEBUG("fd(%d) read/write(%d):%s\n",ev.sock,n,buf);
             		}
             		else
             		{//n==0;closed;
@@ -144,7 +148,7 @@ int main(int argc,char *argv[])
     int32_t port = 9876;
     if (argc == 2)
     {
-        port = atoi(argc);
+        port = atoi(argv[1]);
     }
     StartServer(port);
     return 0;
